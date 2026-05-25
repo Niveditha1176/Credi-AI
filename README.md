@@ -1,7 +1,8 @@
 # Credit Risk Analyzer - Fully Scalable Platform
 
 A modern, production-ready credit risk analysis system that accepts user-provided data files and performs real-time logistic regression-based risk scoring with transparent model execution traces.
-
+deployed via github pages:
+https://niveditha1176.github.io/Credi-AI/
 ## Features
 
 ### File Import System
