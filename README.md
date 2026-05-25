@@ -128,7 +128,7 @@ Approved Limit = Income × Risk Factor × (1 - PD)
 
 
 
-## 📊Example Workflow
+## Example Workflow
 
 ```
 1. Export customer data from your CRM → CSV/Excel
