@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credi AI - Risk Analytics Core</title>
+  <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #060913;
+      --panel: rgba(11, 17, 33, 0.85);
+      --panel-alt: rgba(16, 24, 48, 0.95);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: rgba(148, 163, 184, 0.12);
+      --accent: #00e5ff;
+      --accent-glow: rgba(0, 229, 255, 0.15);
+      --success: #00f2fe;
+      --warning: #f59e0b;
+      --danger: #ff4a6b;
+      --terminal: #030712;
+      --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      --glass-glow: radial-gradient(circle at top left, rgba(0, 229, 255, 0.08), transparent 40%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg);
+      background-image: radial-gradient(circle at 50% 0%, rgba(16, 36, 84, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 0% 100%, rgba(7, 15, 36, 0.4) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      padding: 32px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .page-shell {
+      width: 100%;
+      max-width: 1400px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .glass-panel {
+      background: var(--panel);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--glass-glow);
+      pointer-events: none;
+    }
+
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 32px;
+    }
+
+    .brand-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ffffff 0%, #a5f3fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: 0.02em;
+    }
+
+    .system-status-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid rgba(0, 229, 255, 0.2);
+      padding: 8px 16px;
+      border-radius: 999px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .kpi-card {
+      padding: 24px;
+    }
+
+    .kpi-card h2 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .kpi-card p {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 12px;
+      color: var(--text);
+    }
+
+    .central-ingestion-wrapper {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      padding: 16px 0;
+    }
+
+    .file-upload-section {
+      width: 100%;
+      max-width: 720px;
+      background: rgba(10, 15, 30, 0.6);
+      border: 2px dashed rgba(0, 229, 255, 0.25);
+      border-radius: 24px;
+      padding: 48px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .file-upload-section:hover {
+      border-color: var(--accent);
+      background: rgba(14, 22, 45, 0.8);
+      box-shadow: 0 0 30px rgba(0, 229, 255, 0.1);
+    }
+
+    .file-upload-section.dragover {
+      border-color: #ffffff;
+      background: rgba(20, 35, 70, 0.9);
+      box-shadow: 0 0 40px rgba(0, 229, 255, 0.2);
+    }
+
+    .upload-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .upload-hint {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+
+    .upload-hint small {
+      display: block;
+      margin-top: 8px;
+      font-size: 0.775rem;
+      color: rgba(148, 163, 184, 0.6);
+    }
+
+    .file-info {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 24px;
+      padding: 24px;
+      background: rgba(3, 7, 18, 0.6);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .file-info.hidden { display: none; }
+
+    .file-meta-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .file-name {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .profile-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .profile-option {
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .profile-option:hover {
+      background: rgba(0, 229, 255, 0.05);
+      border-color: rgba(0, 229, 255, 0.3);
+      color: var(--text);
+    }
+
+    .workspace-section {
+      padding: 32px;
+    }
+
+    .workspace-section h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 24px;
+    }
+
+    .console-row {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .console-row { grid-template-columns: 1fr; }
+    }
+
+    .console-intake {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .input-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-wrapper label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .console-intake input, .portfolio-select {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(3, 7, 18, 0.5);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .console-intake input:focus, .portfolio-select:focus {
+      border-color: var(--accent);
+    }
+
+    .action-button {
+      width: 100%;
+      background: linear-gradient(135deg, #00e5ff 0%, #00a3ff 100%);
+      border: none;
+      color: #040814;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(0, 229, 255, 0.15);
+    }
+
+    .action-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(0, 229, 255, 0.25);
+    }
+
+    .results-view {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 32px;
+    }
+
+    .results-view.visible { display: grid; }
+
+    @media (max-width: 768px) {
+      .results-view.visible { grid-template-columns: 1fr; }
+    }
+
+    .panel-container {
+      background: rgba(3, 7, 18, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+    }
+
+    .panel-container h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+    }
+
+    .metric-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .metric-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .metric-item span {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .metric-item strong {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 6px 14px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    .risk-low { background: rgba(0, 242, 254, 0.1); color: var(--success); border: 1px solid rgba(0, 242, 254, 0.2); }
+    .risk-medium { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .risk-high { background: rgba(255, 74, 107, 0.1); color: var(--danger); border: 1px solid rgba(255, 74, 107, 0.2); }
+
+    .ledger-border {
+      border-left: 4px solid var(--border);
+      transition: border-color 0.4s ease;
+    }
+    .ledger-border.low { border-left-color: var(--success); }
+    .ledger-border.medium { border-left-color: var(--warning); }
+    .ledger-border.high { border-left-color: var(--danger); }
+
+    .terminal-output {
+      height: calc(100% - 40px);
+      min-height: 280px;
+      padding: 16px;
+      background: var(--terminal);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #34d399;
+      line-height: 1.6;
+      overflow-y: auto;
+    }
+
+    .terminal-output span {
+      display: block;
+      white-space: pre-wrap;
+    }
+
+    .flow-panel {
+      padding: 32px;
+    }
+
+    .flowline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .flowline { flex-direction: column; gap: 24px; }
+      .flow-connector { width: 2px !important; height: 24px; }
+    }
+
+    .flow-node {
+      flex: 1;
+      min-width: 140px;
+      padding: 16px;
+      background: rgba(3, 7, 18, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.4s ease;
+    }
+
+    .flow-node span {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 4px;
+    }
+
+    .flow-node.active {
+      background: rgba(0, 229, 255, 0.03);
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
+    }
+
+    .flow-connector {
+      width: 32px;
+      height: 2px;
+      background: var(--border);
+      position: relative;
+    }
+
+    .flow-connector::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 0%;
+      background: var(--line-color, var(--accent));
+      transition: width 0.4s ease;
+    }
+
+    .flow-connector.active::after { width: 100%; }
+
+    .sigmoid-panel {
+      padding: 32px;
+    }
+
+    .sigmoid-wrapper {
+      max-width: 640px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sigmoid-graph {
+      width: 100%;
+      height: 200px;
+    }
+
+    .sigmoid-axis {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 1;
+    }
+
+    .sigmoid-path {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.2);
+      stroke-width: 2;
+      stroke-linecap: round;
+      transition: stroke 0.3s;
+    }
+
+    .sigmoid-marker {
+      fill: var(--accent);
+      stroke: #fff;
+      stroke-width: 1.5;
+      transition: all 0.3s ease;
+    }
+
+    .sigmoid-guide {
+      stroke: rgba(255, 255, 255, 0.15);
+      stroke-width: 1;
+      stroke-linecap: round;
+      stroke-dasharray: 4 4;
+      transition: stroke 0.35s ease;
+    }
+
+    /* SPECIFIC COMPONENT DECORATIVE MATRIX TIER COUPLINGS */
+    .sigmoid-card.low .sigmoid-path { stroke: rgba(0, 242, 254, 0.25); }
+    .sigmoid-card.low .sigmoid-marker { fill: var(--success); }
+    .sigmoid-card.low .sigmoid-guide { stroke: var(--success); }
+
+    .sigmoid-card.medium .sigmoid-path { stroke: rgba(245, 158, 11, 0.25); }
+    .sigmoid-card.medium .sigmoid-marker { fill: var(--warning); }
+    .sigmoid-card.medium .sigmoid-guide { stroke: var(--warning); }
+
+    .sigmoid-card.high .sigmoid-path { stroke: rgba(255, 74, 107, 0.25); }
+    .sigmoid-card.high .sigmoid-marker { fill: var(--danger); }
+    .sigmoid-card.high .sigmoid-guide { stroke: var(--danger); }
+
+    .portfolio-panel {
+      padding: 32px;
+      display: none;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .portfolio-panel.visible { display: flex; }
+
+    .portfolio-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .portfolio-meta-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .portfolio-meta-card {
+      background: rgba(3, 7, 18, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .portfolio-meta-card h4 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .portfolio-meta-card p {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+
+    .insight-box {
+      background: rgba(3, 7, 18, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .insight-text {
+      font-size: 0.925rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .export-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: rgba(3, 7, 18, 0.3);
+      padding: 16px 24px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .control-group label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .portfolio-select {
+      padding: 10px 14px;
+      font-size: 0.875rem;
+      background: rgba(3, 7, 18, 0.6);
+    }
+
+    .export-btn {
+      background: #ffffff;
+      border: none;
+      color: #060913;
+      font-weight: 700;
+      padding: 12px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .export-btn:hover {
+      background: rgba(255, 255, 255, 0.9);
+      transform: translateY(-1px);
+    }
+
+    .batch-table-container {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    .batch-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      text-align: left;
+    }
+
+    .batch-table th {
+      background: #0b1121;
+      padding: 14px 16px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .batch-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      color: var(--text);
+    }
+
+    .batch-table tr:hover { background: rgba(255, 255, 255, 0.01); }
+    .hidden { display: none !important; }
+
+    .loader-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-shell">
+    
+    <header class="glass-panel header-section">
+      <div>
+        <div class="brand-title">Credi AI</div>
+        <div class="brand-subtitle">A Banking-grade real-time credit intelligence with a modern FinTech interface.</div>
+      </div>
+      <div class="system-status-badge">System Node Operational</div>
+    </header>
+
+    <div class="kpi-grid">
+      <div class="glass-panel kpi-card">
+        <h2>Model Infrastructure</h2>
+        <p>Logistic Regression (WoE)</p>
+      </div>
+      <div class="glass-panel kpi-card">
+        <h2>Target Core Engine</h2>
+        <p>Probability of Default (PD)</p>
+      </div>
+      <div class="glass-panel kpi-card">
+        <h2>Integration Framework</h2>
+        <p>Temenos Quantum Fabric</p>
+      </div>
+    </div>
+
+    <section class="glass-panel central-ingestion-wrapper">
+      <div class="file-upload-section" id="uploadArea">
+        <div class="upload-text">Import System Ledger</div>
+        <div class="upload-hint">
+          Drag and drop your file validation vector or click to browse localized storage maps
+          <small>Supported Formats: CSV, XLSX, XLS | Validation Schema: ID, Name, Income, CIBIL, Limit, Outstanding, DPD, Unsecured</small>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+        
+        <div id="fileInfo" class="file-info hidden" onclick="event.stopPropagation()">
+          <div class="file-meta-header">
+            <div class="file-name" id="fileName">File Context Mapping</div>
+            <button class="clear-data-btn" id="clearDataBtn">Purge Dataset</button>
+          </div>
+          <div style="color: var(--muted); font-size: 0.8rem; margin: 4px 0 12px 0;" id="rowCount">Profiles parsed: 0</div>
+          <div class="profile-list" id="profileList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass-panel portfolio-panel" id="portfolioPanel">
+      <h3 style="font-size: 1.15rem; color: #ffffff;">Portfolio Risk Segmentation Matrix</h3>
+      
+      <div class="portfolio-meta-grid">
+        <div class="portfolio-meta-card" style="border-top: 2px solid var(--text);">
+          <h4>Gross Records</h4>
+          <p id="portTotalCount">0</p>
+        </div>
+        <div class="portfolio-meta-card" style="border-top: 2px solid var(--success);">
+          <h4>Low Risk Cluster</h4>
+          <p id="portLowCount" style="color: var(--success);">0</p>
+        </div>
+        <div class="portfolio-meta-card" style="border-top: 2px solid var(--warning);">
+          <h4>Borderline Cluster</h4>
+          <p id="portMediumCount" style="color: var(--warning);">0</p>
+        </div>
+        <div class="portfolio-meta-card" style="border-top: 2px solid var(--danger);">
+          <h4>High Variance Risk</h4>
+          <p id="portHighCount" style="color: var(--danger);">0</p>
+        </div>
+      </div>
+
+      <div class="insight-box">
+        <div class="insight-text" id="portfolioInsightText">
+          Awaiting matrix string compiling pipeline initialization...
+        </div>
+      </div>
+
+      <div class="export-controls">
+        <div class="control-group">
+          <label for="sectorFilterSelect">Segment Viewport:</label>
+          <select id="sectorFilterSelect" class="portfolio-select" onchange="renderSelectedSectorRows()">
+            <option value="LOW_RISK">Low Risk Sector</option>
+            <option value="MEDIUM_RISK">Medium Risk Sector</option>
+            <option value="HIGH_RISK">High Risk Sector</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="exportFormatSelect">Format Parameter:</label>
+          <select id="exportFormatSelect" class="portfolio-select">
+            <option value="CSV">Export Stream CSV</option>
+            <option value="XLSX">Export Binary Worksheet XLSX</option>
+          </select>
+          <button class="export-btn" onclick="handleSectorExport()">Generate Sector File</button>
+        </div>
+      </div>
+
+      <div class="batch-table-container">
+        <table class="batch-table">
+          <thead>
+            <tr>
+              <th>Identifier</th>
+              <th>Applicant Identity</th>
+              <th>Monthly Earnings</th>
+              <th>CIBIL Matrix</th>
+              <th>Debt CUR</th>
+              <th>Sigmoid PD</th>
+              <th>Credit Ceiling</th>
+            </tr>
+          </thead>
+          <tbody id="portfolioTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass-panel workspace-section">
+      <h2>Individual employee- Analysis ScoreCard</h2>
+      
+      <div class="console-row">
+        <div class="console-intake">
+          <div class="input-wrapper">
+            <label for="profileIdInput">Target Pipeline Reference</label>
+            <input id="profileIdInput" type="text" placeholder="Select an active verification ID" list="profileIds" />
+            <datalist id="profileIds"></datalist>
+          </div>
+          <button class="action-button" id="runButton">Run Vector Compilation</button>
+          
+          <div id="loader" class="loader-overlay hidden">
+            <div class="spinner"></div>
+            <p style="font-size: 0.85rem; color: var(--muted);">Resolving linear coefficients math...</p>
+          </div>
+          <div id="message" class="message-banner" style="display:none;"></div>
+        </div>
+
+        <div class="panel-container sigmoid-card" id="sigmoidCard">
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <h3 style="margin:0;">Probability Activation Curve</h3>
+            <div id="sigmoidStatus" class="status-badge risk-low">Trace Rest</div>
+          </div>
+          <div class="sigmoid-chart">
+            <svg viewBox="0 0 320 210" class="sigmoid-graph">
+              <path class="sigmoid-axis" d="M40 180 H300" />
+              <path class="sigmoid-axis" d="M40 180 V20" />
+              <text x="42" y="195" fill="#64748b" font-size="9">0%</text>
+              <text x="274" y="195" fill="#64748b" font-size="9">100%</text>
+              <text x="15" y="26" fill="#64748b" font-size="9">1.0</text>
+              <path class="sigmoid-path" d="M40 170 C85 135, 125 95, 160 72 C200 50, 245 50, 300 54" />
+              
+              <line id="sigmoidVGuide" class="sigmoid-guide" x1="40" y1="170" x2="40" y2="180" />
+              <line id="sigmoidHGuide" class="sigmoid-guide" x1="40" y1="170" x2="40" y2="170" />
+              
+              <circle id="sigmoidMarker" class="sigmoid-marker" cx="40" cy="170" r="4" />
+            </svg>
+          </div>
+          <div class="sigmoid-value">
+            <span>Computed Default Matrix Boundary</span>
+            <strong id="sigmoidValue">0.00%</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-panel" style="margin-top: 32px; border-top: 1px solid var(--border); padding-top: 32px;">
+        <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 16px;">Mathematical Pipeline Traversal</h3>
+        <div class="flowline">
+          <div id="node1" class="flow-node">Context Fetch <span>Profile values integrated</span></div>
+          <div id="line1" class="flow-connector"></div>
+          <div id="node2" class="flow-node">Weight Binning <span>WoE metrics constructed</span></div>
+          <div id="line2" class="flow-connector"></div>
+          <div id="node3" class="flow-node">Sigmoid Curve <span>Probability mapping complete</span></div>
+          <div id="line3" class="flow-connector"></div>
+          <div id="node4" class="flow-node">Target Decision <span>Credit allocation assigned</span></div>
+        </div>
+      </div>
+
+      <div id="results" class="results-view">
+        <div id="ledger" class="panel-container ledger-border low">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h3 style="margin:0;">Ledger Context Capture</h3>
+            <div id="statusBadge" class="status-badge risk-low">Null View</div>
+          </div>
+          <div class="metric-list">
+            <div class="metric-item"><span>Credit Utilization (CUR)</span><strong id="curValue">0.00%</strong></div>
+            <div class="metric-item"><span>Default Probability (PD)</span><strong id="pdValue">0.00%</strong></div>
+            <div class="metric-item"><span>Scale Summation Index (z)</span><strong id="zValue">0.0000</strong></div>
+            <div class="metric-item"><span>Capital Asset Cap Limit</span><strong id="limitValue">INR 0</strong></div>
+          </div>
+        </div>
+        
+        <div class="panel-container">
+          <h3>Calculations Log Trace</h3>
+          <div class="terminal-output" id="terminalOutput"></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    let dataset = [];
+    let evaluatedPortfolio = [];
+    let uploadedFileName = '';
+
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const rowCount = document.getElementById('rowCount');
+    const profileList = document.getElementById('profileList');
+    const profileIds = document.getElementById('profileIds');
+    const clearDataBtn = document.getElementById('clearDataBtn');
+    
+    const profileIdInput = document.getElementById('profileIdInput');
+    const runButton = document.getElementById('runButton');
+    const loader = document.getElementById('loader');
+    const results = document.getElementById('results');
+    const messageBanner = document.getElementById('message');
+    const statusBadge = document.getElementById('statusBadge');
+    const ledger = document.getElementById('ledger');
+    const curValue = document.getElementById('curValue');
+    const pdValue = document.getElementById('pdValue');
+    const zValue = document.getElementById('zValue');
+    const limitValue = document.getElementById('limitValue');
+    const terminalOutput = document.getElementById('terminalOutput');
+    const sigmoidCard = document.getElementById('sigmoidCard');
+    const sigmoidMarker = document.getElementById('sigmoidMarker');
+    const sigmoidVGuide = document.getElementById('sigmoidVGuide');
+    const sigmoidHGuide = document.getElementById('sigmoidHGuide');
+    const sigmoidValue = document.getElementById('sigmoidValue');
+    const sigmoidStatus = document.getElementById('sigmoidStatus');
+    
+    const flowNodes = [
+      document.getElementById('node1'),
+      document.getElementById('node2'),
+      document.getElementById('node3'),
+      document.getElementById('node4')
+    ];
+    const flowLines = [
+      document.getElementById('line1'),
+      document.getElementById('line2'),
+      document.getElementById('line3')
+    ];
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        processFile(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) processFile(e.target.files[0]);
+    });
+
+    function processFile(file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          let jsonData = [];
+          if (file.name.endsWith('.csv')) {
+            jsonData = parseCSV(event.target.result);
+          } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+            if (typeof XLSX === 'undefined') {
+              showMessage('Parsing error: Local infrastructure missing Excel utility compilation layers.', 'error');
+              return;
+            }
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+          } else {
+            showMessage('Validation rejection: File pattern tracks outside accepted formatting matrices.', 'error');
+            return;
+          }
+          
+          dataset = parseAndValidateData(jsonData);
+          if (dataset.length === 0) {
+            showMessage('Structural parsing alert: Data records return null parameters or incorrect columns mapping.', 'error');
+            return;
+          }
+          
+          uploadedFileName = file.name;
+          displayFileInfo();
+          populateProfileDropdown();
+          showMessage(`System status match: Successfully mapped ${dataset.length} individual user nodes`, 'success');
+          runPortfolioBatchAnalysis();
+        } catch (error) {
+          showMessage('Handshake execution error: ' + error.message, 'error');
+        }
+      };
+      if (file.name.endsWith('.csv')) reader.readAsText(file);
+      else reader.readAsArrayBuffer(file);
+    }
+
+    function parseCSV(csv) {
+      const lines = csv.trim().split('\n');
+      if (lines.length < 2) return [];
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[\"\']/g, ''));
+      const data = [];
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const values = lines[i].split(',').map(v => v.trim().replace(/[\"\']/g, ''));
+        const row = {};
+        headers.forEach((header, idx) => { row[header] = values[idx]; });
+        data.push(row);
+      }
+      return data;
+    }
+
+    function parseAndValidateData(jsonData) {
+      const requiredFields = ['id', 'name', 'income', 'cibil', 'limit', 'outstanding', 'dpd', 'unsecured'];
+      const parsed = [];
+      jsonData.forEach((row, idx) => {
+        try {
+          const normalizedRow = {};
+          for (let key in row) { normalizedRow[key.toLowerCase().trim()] = row[key]; }
+          if (requiredFields.filter(f => !(f in normalizedRow)).length > 0) return;
+          
+          const profile = {
+            id: String(normalizedRow.id),
+            name: String(normalizedRow.name || `Profile Reference ${idx + 1}`),
+            income: Number(normalizedRow.income) || 0,
+            cibil: Number(normalizedRow.cibil) || 600,
+            limit: Number(normalizedRow.limit) || 0,
+            outstanding: Number(normalizedRow.outstanding) || 0,
+            dpd: Number(normalizedRow.dpd) || 0,
+            unsecured: Number(normalizedRow.unsecured) || 0
+          };
+          if (profile.income > 0 && profile.cibil >= 300 && profile.limit > 0) parsed.push(profile);
+        } catch (e) {}
+      });
+      return parsed;
+    }
+
+    function displayFileInfo() {
+      fileName.textContent = `Linked Context: ${uploadedFileName}`;
+      rowCount.textContent = `Verified entries: ${dataset.length} profiles | Active validation array structure: Complete`;
+      fileInfo.classList.remove('hidden');
+    }
+
+    function populateProfileDropdown() {
+      profileIds.innerHTML = '';
+      profileList.innerHTML = '';
+      dataset.forEach(profile => {
+        const option = document.createElement('option');
+        option.value = profile.id;
+        profileIds.appendChild(option);
+        
+        const btn = document.createElement('div');
+        btn.className = 'profile-option';
+        btn.textContent = `ID Reference: ${profile.id} | ${profile.name}`;
+        btn.onclick = () => { profileIdInput.value = profile.id; };
+        profileList.appendChild(btn);
+      });
+    }
+
+    function showMessage(text, type = 'info') {
+      messageBanner.textContent = text;
+      messageBanner.style.display = 'block';
+      messageBanner.style.borderColor = type === 'error' ? 'rgba(255, 74, 107, 0.2)' : 'rgba(0, 242, 254, 0.2)';
+      messageBanner.style.color = type === 'error' ? 'var(--danger)' : 'var(--accent)';
+    }
+
+    clearDataBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dataset = []; evaluatedPortfolio = []; uploadedFileName = '';
+      fileInfo.classList.add('hidden');
+      document.getElementById('portfolioPanel').classList.remove('visible');
+      profileIds.innerHTML = ''; profileList.innerHTML = ''; fileInput.value = ''; profileIdInput.value = '';
+      messageBanner.style.display = 'none'; results.classList.remove('visible');
+      resetFlow();
+    });
+
+    function calculateWoE(cibil, cur, dpd, unsecured) {
+      let woeCibil = cibil >= 750 ? 0.85 : cibil >= 650 ? 0.15 : -0.95;
+      let woeCur = cur <= 30 ? 0.75 : cur <= 60 ? 0.10 : -0.80;
+      let woeDpd = dpd === 0 ? 0.90 : dpd === 1 ? -0.20 : -1.10;
+      let woeMix = unsecured <= 1 ? 0.40 : -0.65;
+      return { woeCibil, woeCur, woeDpd, woeMix };
+    }
+
+    function sigmoid(z) { return 1 / (1 + Math.exp(z)); }
+    function formatNumber(val, digits = 2) { return Number(val).toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits }); }
+
+    function setRiskPresentation(category, colorClass) {
+      statusBadge.textContent = category;
+      statusBadge.className = `status-badge ${colorClass}`;
+      ledger.className = `panel-container ledger-border ${colorClass === 'risk-low' ? 'low' : colorClass === 'risk-medium' ? 'medium' : 'high'}`;
+      sigmoidCard.className = `panel-container sigmoid-card ${colorClass === 'risk-low' ? 'low' : colorClass === 'risk-medium' ? 'medium' : 'high'}`;
+      sigmoidStatus.className = `status-badge ${colorClass}`;
+    }
+
+    function resetFlow() {
+      flowNodes.forEach(node => { node.className = 'flow-node'; node.style.boxShadow = 'none'; });
+      flowLines.forEach(line => line.className = 'flow-connector');
+    }
+
+    function animateFlow(riskClass) {
+      resetFlow();
+      const colors = { 'risk-low': '#00f2fe', 'risk-medium': '#f59e0b', 'risk-high': '#ff4a6b' };
+      flowLines.forEach(line => line.style.setProperty('--line-color', colors[riskClass]));
+      setTimeout(() => { flowNodes[0].classList.add('active'); flowLines[0].classList.add('active'); }, 200);
+      setTimeout(() => { flowNodes[1].classList.add('active'); flowLines[1].classList.add('active'); }, 500);
+      setTimeout(() => { flowNodes[2].classList.add('active'); flowLines[2].classList.add('active'); }, 800);
+      setTimeout(() => { flowNodes[3].classList.add('active'); }, 1100);
+    }
+
+    function buildTerminalLog(profile, woe, z, pd, capFactor, finalLimit) {
+      const logs = [
+        `> Accessing localized memory profile vector matching ID Reference: ${profile.id}`,
+        `> Target: ${profile.name} | Income Statement Base: INR ${profile.income.toLocaleString()}`,
+        `> Execution parameter verification: CIBIL ${profile.cibil} | Calculated Debt Utilization Ratio: ${formatNumber((profile.outstanding / profile.limit) * 100)}%`,
+        `> Computing mathematical scorecard mapping algorithms via internal Weight of Evidence parameters:`,
+        `   • Matrix CIBIL Component Vector -> ${woe.woeCibil}`,
+        `   • Matrix CUR Utilization Vector -> ${woe.woeCur}`,
+        `   • Matrix DPD Delinquency Vector -> ${woe.woeDpd}`,
+        `   • Matrix Mixed Debt Type Vector -> ${woe.woeMix}`,
+        `> Combining linear vector coefficients model strings:`,
+        `  z = -0.15 + (1.25 * ${woe.woeCibil}) + (1.10 * ${woe.woeCur}) + (1.45 * ${woe.woeDpd}) + (0.85 * ${woe.woeMix})`,
+        `> Computed Index Scale Value (z) = ${formatNumber(z, 4)}`,
+        `> Executing sigmoid activation algorithm: PD = 1 / (1 + e^(z))`,
+        `> Output Probability of Default probability metric = ${formatNumber(pd * 100, 4)}%`,
+        `> Category destination verification path resolved: ${categoryName(pd)}`,
+        `> Risk adjusted ceiling threshold coefficient = ${capFactor}x`,
+        `> Operational result locked: Final credit limit allocation approved at INR ${finalLimit.toLocaleString()}`
+      ];
+      terminalOutput.innerHTML = logs.map(l => `<span>${l}</span>`).join('');
+    }
+
+    function categoryName(pd) { return pd < 0.25 ? 'LOW_RISK' : pd <= 0.60 ? 'MEDIUM_RISK' : 'HIGH_RISK'; }
+
+    function updateSigmoidDisplay(pd, category) {
+      const x = 40 + Math.min(1, Math.max(0, pd)) * 260;
+      const t = (x - 170) / 28;
+      const y = 170 - (1 / (1 + Math.exp(-t)) * 120);
+      
+      sigmoidMarker.setAttribute('cx', x.toString());
+      sigmoidMarker.setAttribute('cy', y.toString());
+      
+      // Dynamic vertical line tracking down to X-axis
+      sigmoidVGuide.setAttribute('x1', x.toString());
+      sigmoidVGuide.setAttribute('y1', y.toString());
+      sigmoidVGuide.setAttribute('x2', x.toString());
+      sigmoidVGuide.setAttribute('y2', '180');
+
+      // Dynamic horizontal line tracking across to Y-axis
+      sigmoidHGuide.setAttribute('x1', '40');
+      sigmoidHGuide.setAttribute('y1', y.toString());
+      sigmoidHGuide.setAttribute('x2', x.toString());
+      sigmoidHGuide.setAttribute('y2', y.toString());
+      
+      sigmoidValue.textContent = `${formatNumber(pd * 100)}%`;
+      sigmoidStatus.textContent = `${category} VIEW`;
+    }
+
+    function runPortfolioBatchAnalysis() {
+      if (dataset.length === 0) return;
+      evaluatedPortfolio = dataset.map(p => {
+        const cur = (p.outstanding / p.limit) * 100;
+        const woe = calculateWoE(p.cibil, cur, p.dpd, p.unsecured);
+        const z = -0.15 + (1.25 * woe.woeCibil) + (1.10 * woe.woeCur) + (1.45 * woe.woeDpd) + (0.85 * woe.woeMix);
+        const pd = sigmoid(z);
+        let category = 'HIGH_RISK'; let cap = 0;
+        if (pd < 0.25) { category = 'LOW_RISK'; cap = 4.5; }
+        else if (pd <= 0.60) { category = 'MEDIUM_RISK'; cap = 1.5; }
+        return { ...p, cur, z, pd, category, approvedLimit: Math.round((p.income * cap) * (1 - pd)) };
+      });
+
+      const low = evaluatedPortfolio.filter(p => p.category === 'LOW_RISK');
+      const med = evaluatedPortfolio.filter(p => p.category === 'MEDIUM_RISK');
+      const high = evaluatedPortfolio.filter(p => p.category === 'HIGH_RISK');
+
+      document.getElementById('portTotalCount').textContent = evaluatedPortfolio.length;
+      document.getElementById('portLowCount').textContent = low.length;
+      document.getElementById('portMediumCount').textContent = med.length;
+      document.getElementById('portHighCount').textContent = high.length;
+
+      const avgCibil = evaluatedPortfolio.reduce((acc, p) => acc + p.cibil, 0) / evaluatedPortfolio.length;
+      const capitalAllocationSum = evaluatedPortfolio.reduce((acc, p) => acc + p.approvedLimit, 0);
+      const riskAnomalies = evaluatedPortfolio.filter(p => p.income >= 100000 && p.cibil < 660);
+      const dynamicCapitalShielded = high.reduce((acc, p) => acc + (p.income * 1.5), 0);
+
+      let textOutputSummary = `• Structural Overview Macro Analysis: Batch integration pipeline successfully verified and processed a gross volume of <strong>${evaluatedPortfolio.length}</strong> profile nodes. The statistical median calculation maps a portfolio CIBIL framework average of <strong>${Math.round(avgCibil)}</strong>, dispatching an absolute deployment allocation lines calculation of <strong>INR ${capitalAllocationSum.toLocaleString()}</strong> across all active accounts.<br><br>`;
+      
+      if (riskAnomalies.length > 0) {
+        textOutputSummary += `• Critical Exception Report: The calculation filter isolated <strong>${riskAnomalies.length} files tracking high-revenue structures but suffering from suppressed credit ratings</strong>. This marks significant liability risk. The optimization parameters automatically compressed or restricted their credit ceiling buffers to shield core capital maps.<br><br>`;
+      } else {
+        textOutputSummary += `• Financial Stability Metric: Revenue generation channels correlate perfectly with high credit score profiles, confirming clean borrowing traits across all records.<br><br>`;
+      }
+
+      textOutputSummary += `• Default Prevention Assessment: By restricting capital lines down to zero for the <strong>${high.length} profiles breaching the 60% probability ceiling</strong>, the system matrix insulated the bank ledger from roughly <strong>INR ${Math.round(dynamicCapitalShielded).toLocaleString()}</strong> in severe toxic debt defaults exposure.`;
+
+      document.getElementById('portfolioInsightText').innerHTML = textOutputSummary;
+      renderSelectedSectorRows();
+      document.getElementById('portfolioPanel').classList.add('visible');
+    }
+
+    function renderSelectedSectorRows() {
+      const filter = document.getElementById('sectorFilterSelect').value;
+      const body = document.getElementById('portfolioTableBody');
+      body.innerHTML = '';
+      const matched = evaluatedPortfolio.filter(p => p.category === filter);
+      if (matched.length === 0) {
+        body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">No profile matrix positions track inside this sector parameters.</td></tr>`;
+        return;
+      }
+      matched.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${p.id}</strong></td>
+          <td>${p.name}</td>
+          <td>INR ${p.income.toLocaleString()}</td>
+          <td><span style="color:${p.cibil >= 750 ? 'var(--success)' : p.cibil >= 650 ? 'var(--warning)' : 'var(--danger)'}">${p.cibil}</span></td>
+          <td>${formatNumber(p.cur, 1)}%</td>
+          <td>${formatNumber(p.pd * 100, 1)}%</td>
+          <td style="font-weight:700; color:${p.category === 'LOW_RISK' ? 'var(--success)' : p.category === 'MEDIUM_RISK' ? 'var(--warning)' : 'var(--danger)'}">INR ${p.approvedLimit.toLocaleString()}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function handleSectorExport() {
+      if (evaluatedPortfolio.length === 0) return alert("System state error: Portfolio data arrays return empty parameters.");
+      const sector = document.getElementById('sectorFilterSelect').value;
+      const type = document.getElementById('exportFormatSelect').value;
+      const subset = evaluatedPortfolio.filter(p => p.category === sector);
+      if (subset.length === 0) return alert("Operation canceled: Target classification array contains zero items.");
+
+      const outputRows = subset.map(p => ({
+        "Reference ID": p.id,
+        "Customer Identity": p.name,
+        "Monthly Earnings": p.income,
+        "CIBIL Score": p.cibil,
+        "Assigned Limit": p.limit,
+        "Current Outstanding Balance": p.outstanding,
+        "DPD Overdue Flags": p.dpd,
+        "Unsecured Line Accounts": p.unsecured,
+        "Credit Utilization Ratio": Number(p.cur.toFixed(2)),
+        "Linear Log Index Scalar": Number(p.z.toFixed(4)),
+        "Sigmoid Default Probability": Number((p.pd * 100).toFixed(2)),
+        "Risk Segmentation Category": p.category,
+        "Risk Adjusted Credit Allocation": p.approvedLimit
+      }));
+
+      const title = `${sector.toLowerCase()}_credit_segmentation_report`;
+      if (type === 'XLSX') {
+        const ws = XLSX.utils.json_to_sheet(outputRows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Risk Partition Analytics");
+        XLSX.writeFile(wb, `${title}.xlsx`);
+      } else {
+        const ws = XLSX.utils.json_to_sheet(outputRows);
+        const textCsv = XLSX.utils.sheet_to_csv(ws);
+        const blob = new Blob([textCsv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        a.setAttribute("href", url);
+        a.setAttribute("download", `${title}.csv`);
+        a.style.visibility = 'hidden';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    }
+
+    runButton.addEventListener('click', () => {
+      if (dataset.length === 0) return alert("Operational halt: Ingest an application data ledger mapping first.");
+      const id = profileIdInput.value.trim();
+      const match = dataset.find(p => String(p.id) === id);
+      if (!match) return alert("Lookup trace exception: Reference ID details missing from storage nodes.");
+      
+      results.classList.remove('visible');
+      loader.classList.remove('hidden');
+      
+      const cur = (match.outstanding / match.limit) * 100;
+      const woe = calculateWoE(match.cibil, cur, match.dpd, match.unsecured);
+      const z = -0.15 + (1.25 * woe.woeCibil) + (1.10 * woe.woeCur) + (1.45 * woe.woeDpd) + (0.85 * woe.woeMix);
+      const pd = sigmoid(z);
+      
+      let cat = 'LOW_RISK', factor = 4.5, styleClass = 'risk-low';
+      if (pd < 0.25) { cat = 'LOW_RISK'; factor = 4.5; styleClass = 'risk-low'; }
+      else if (pd <= 0.60) { cat = 'MEDIUM_RISK'; factor = 1.5; styleClass = 'risk-medium'; }
+      else { cat = 'HIGH_RISK'; factor = 0; styleClass = 'risk-high'; }
+      
+      const limit = Math.round((match.income * factor) * (1 - pd));
+      setTimeout(() => {
+        loader.classList.add('hidden');
+        curValue.textContent = `${formatNumber(cur)}%`;
+        pdValue.textContent = `${formatNumber(pd * 100)}%`;
+        zValue.textContent = formatNumber(z, 4);
+        limitValue.textContent = `INR ${limit.toLocaleString()}`;
+        setRiskPresentation(cat, styleClass);
+        updateSigmoidDisplay(pd, cat);
+        buildTerminalLog(match, woe, z, pd, factor, limit);
+        results.classList.add('visible');
+        animateFlow(styleClass);
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
